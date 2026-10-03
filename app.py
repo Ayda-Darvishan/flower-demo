@@ -10,9 +10,9 @@ h1,h2,h3 {font-family:Georgia,serif;}
 [data-testid="stImage"] img {height:300px;object-fit:contain;background:#f3ece8;border-radius:12px;}
 .stButton>button {border-radius:20px;}
 </style>''', unsafe_allow_html=True)
-st.title('Flower Studio 🌷')
-st.write('Handcrafted bouquets · A little beauty for every occasion')
-st.info('نسخه آموزشی: قیمت‌ها فرضی‌اند. پرداخت یا ثبت سفارش واقعی انجام نمی‌شود.')
+st.title('VESSELL 🌷')
+st.write('ارسال گل و هدیه از خارج به سراسر ایران')
+st.info('فعلا به صورت آزمایشی برای مهشید (نشخین) گیان')
 products = json.loads((ROOT / 'products.json').read_text(encoding='utf-8'))
 lookup = {p['id']:p for p in products}
 if 'cart' not in st.session_state:
@@ -24,21 +24,21 @@ def add(pid):
     st.session_state[f'qty_{pid}'] = cart[pid]
 
 with st.sidebar:
-    st.header('سبد خرید آزمایشی')
+    st.header('سبد خرید')
     for pid in list(st.session_state.cart):
         p = lookup[pid]
         qty = st.number_input(p['name'], min_value=0, max_value=20,
                               value=st.session_state.cart[pid], key=f'qty_{pid}')
         st.session_state.cart[pid] = qty
     total = sum(lookup[pid]['price']*q for pid,q in st.session_state.cart.items())
-    st.metric('جمع فرضی (USD)', f'${total:.2f}')
+    st.metric('جمع (USD)', f'${total:.2f}')
     if st.button('خالی کردن سبد'):
         st.session_state.cart = {}
         for key in list(st.session_state):
             if key.startswith('qty_'):
                 del st.session_state[key]
         st.rerun()
-    st.caption('سبد موقت است؛ اطلاعات شخصی جمع‌آوری نمی‌شود.')
+    st.caption('سبد موقتی که بعدا به درگاه پرداخت وصل کنیم')
 
 query = st.text_input('جست‌وجوی گل', placeholder='مثلاً صورتی یا بنفش')
 items = [p for p in products if query.strip().casefold() in (p['name']+' '+p['description']).casefold()]
@@ -60,6 +60,6 @@ if st.button('مشاهده خلاصه سبد آزمایشی'):
             for pid,q in st.session_state.cart.items() if q]
     if rows:
         st.dataframe(rows, use_container_width=True)
-        st.success('این فقط پیش‌نمایش سبد است؛ سفارشی ارسال نشده است.')
+        st.success('این فقط پیش‌نمایش سبد است؛ سفارشی ارسال نشده است')
     else:
-        st.warning('سبد خالی است.')
+        st.warning('سبد خالی است')
