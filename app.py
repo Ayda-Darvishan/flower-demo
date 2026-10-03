@@ -29,12 +29,7 @@ st.markdown('''<style>
 html, body, [class*="css"], .stApp, input, button, textarea, select {
     font-family:'DM Sans','Vazirmatn',sans-serif;
 }
-#[data-testid="stMainBlockContainer"] { max-width:1440px; padding-top:1.8rem; padding-bottom:3rem; }
-[data-testid="stMainBlockContainer"] {
-    max-width:1440px;
-    padding-top:2.5rem;
-    padding-bottom:3rem;
-}
+[data-testid="stMainBlockContainer"] { max-width:1440px; padding-top:4.5rem; padding-bottom:3rem; }
 [data-testid="stHeader"] { background:rgba(251,250,246,.92); }
 h1,h2,h3,p { color:var(--ink); }
 .v-nav { display:flex; align-items:center; justify-content:space-between; gap:20px;
@@ -106,7 +101,7 @@ h1,h2,h3,p { color:var(--ink); }
 .v-footer strong { font-family:Georgia,serif; letter-spacing:3px; }
 .v-footer span { color:var(--muted); font-size:11px; }
 @media(max-width:800px) {
-    [data-testid="stMainBlockContainer"] { padding:1.2rem 1rem 2rem; }
+    [data-testid="stMainBlockContainer"] { padding:4.5rem 1rem 2rem; }
     .v-nav-note { display:none; }
     .v-logo { font-size:24px; }
     .v-hero { grid-template-columns:1fr; }
@@ -116,20 +111,19 @@ h1,h2,h3,p { color:var(--ink); }
     .v-section { flex-direction:column; align-items:start; gap:8px; }
     .v-footer { flex-direction:column; align-items:start; }
 }
-.stButton > button[kind="primary"],
-.stButton > button[kind="primary"] * {
-    color: #ffffff !important;
-}
 
-.stButton > button[kind="primary"] {
-    background: #304d3e !important;
-    border-color: #304d3e !important;
+.stButton > button[kind="primary"], .stButton > button[kind="primary"] * {color:white!important;}
+.stButton > button:hover * {color:white!important;}
+.st-key-navigation_bar {background:#f0f2eb; border:1px solid #d8dfd2; border-radius:14px; padding:12px 16px; margin-bottom:20px;}
+.st-key-navigation_bar [role="radiogroup"] {gap:24px; flex-wrap:wrap;}
+.st-key-navigation_bar label p {font-weight:600; color:#304d3e;}
+.v-cart-photo {height:150px; object-fit:contain; width:100%; background:#f3eee9; border-radius:12px;}
+@media(max-width:640px) {
+    [data-testid="stHorizontalBlock"] {flex-wrap:wrap;}
+    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {width:100%!important; flex:1 1 100%!important; min-width:0!important;}
+    .v-nav-cart {font-size:10px;padding:9px;}
+    .v-product-photo {height:310px;}
 }
-
-.stButton > button[kind="primary"]:hover {
-    background: #243b2f !important;
-}
-
 </style>''', unsafe_allow_html=True)
 
 try:
@@ -144,9 +138,23 @@ if 'cart' not in st.session_state:
 st.session_state.cart = {str(pid):int(q) for pid,q in st.session_state.cart.items() if str(pid) in lookup}
 
 def add(pid):
-    current = int(st.session_state.get(f'qty_{pid}', st.session_state.cart.get(pid, 0)))
+    current = int(st.session_state.cart.get(pid, 0))
     st.session_state.cart[pid] = min(current + 1, 20)
     st.session_state[f'qty_{pid}'] = st.session_state.cart[pid]
+    st.toast('به سبد اضافه شد؛ برای تغییر یا حذف، «سبد خرید» را انتخاب کنید.', icon='🌷')
+
+def remove_item(pid):
+    st.session_state.cart.pop(pid, None)
+    st.session_state[f'qty_{pid}'] = 0
+
+
+def go_cart():
+    st.session_state['navigation'] = 'cart'
+
+
+def go_catalog():
+    st.session_state['navigation'] = 'catalog'
+
 
 def update_quantity(pid):
     st.session_state.cart[pid] = int(st.session_state[f'qty_{pid}'])
@@ -157,7 +165,7 @@ def clear_cart():
         if key.startswith('qty_'):
             del st.session_state[key]
 
-with st.sidebar:
+def render_cart():
     st.markdown('<div class="v-bag-title">Your little garden</div><div class="v-bag-sub">سبد خرید شما · انتخاب‌هایی با عشق</div>', unsafe_allow_html=True)
     active = [pid for pid,q in st.session_state.cart.items() if q>0]
     if not active:
@@ -168,24 +176,44 @@ with st.sidebar:
         with a:
             path = ROOT/'images'/p['image']
             if path.is_file():
-                st.image(str(path), use_container_width=True)
+                st.markdown(f'<img class="v-cart-photo" src="{photo(p)}" alt="{esc(p["name"])}">', unsafe_allow_html=True)
         with b:
             st.markdown(f'<div class="v-cart-name">{esc(p["name"])}</div><div class="v-cart-price">${float(p["price"]):,.2f} / item</div>', unsafe_allow_html=True)
             key = f'qty_{pid}'
             if key not in st.session_state:
                 st.session_state[key] = st.session_state.cart[pid]
             st.number_input(f'تعداد {p["name"]}', min_value=0, max_value=20,
-                            key=key, on_change=update_quantity, args=(pid,), label_visibility='collapsed')
+                            key=key, on_change=update_quantity, args=(pid,), label_visibility='visible')
+            st.button('حذف از سبد ×', key=f'remove_{pid}', on_click=remove_item, args=(pid,), use_container_width=True)
     total = sum(float(lookup[pid]['price'])*q for pid,q in st.session_state.cart.items())
     st.markdown(f'<div class="v-total"><span>جمع سبد · USD</span><strong>${total:,.2f}</strong></div>', unsafe_allow_html=True)
     st.write('')
-    show_summary = st.button('ثبت سفارش', type='primary', use_container_width=True)
+    show_summary = st.button('مشاهده خلاصه سبد  ↗', type='primary', use_container_width=True)
     st.button('خالی کردن سبد', on_click=clear_cart, use_container_width=True, disabled=not active)
     st.caption('سبد موقتی که بعدا به درگاه پرداخت وصل کنیم')
+    st.button('بازگشت به گل‌ها', key='back_to_flowers', on_click=go_catalog, use_container_width=True)
+    return show_summary
 
 count = sum(st.session_state.cart.values())
 st.markdown(f'''<div class="v-nav"><div class="v-logo">VESSELL<small>SENDING LOVE HOME</small></div>
 <div class="v-nav-note">گل‌های کوچک، احساس‌های بزرگ</div><div class="v-nav-cart">YOUR BAG &nbsp; / &nbsp; {count:02d}</div></div>''', unsafe_allow_html=True)
+with st.container(key='navigation_bar'):
+    page = st.radio('انتخاب صفحه', ['catalog', 'cart'],
+                    format_func=lambda value: '🌷 مجموعه گل‌ها' if value == 'catalog' else '🛍️ سبد خرید',
+                    key='navigation', horizontal=True, label_visibility='collapsed')
+if page == 'cart':
+    show_summary = render_cart()
+    if show_summary:
+        st.subheader('خلاصه سبد آزمایشی')
+        rows = [{'محصول':lookup[pid]['name'],'تعداد':q,'جمع (USD)':float(lookup[pid]['price'])*q}
+                for pid,q in st.session_state.cart.items() if q]
+        if rows:
+            st.dataframe(rows, use_container_width=True, hide_index=True)
+            st.success('این فقط پیش‌نمایش سبد است؛ سفارشی ارسال نشده است')
+        else:
+            st.warning('سبد خالی است')
+    st.stop()
+
 hero = photo(products[2] if len(products)>2 else products[0]) if products else ''
 hero_image = f'<img src="{hero}" alt="دسته گل صورتی">' if hero else ''
 st.markdown(f'''<section class="v-hero"><div class="v-hero-text"><div class="v-eyebrow">A LITTLE FLOWER. A LOT OF LOVE.</div>
@@ -218,16 +246,10 @@ for start in range(0,len(items),3):
                 amount = st.session_state.cart.get(pid,0)
                 label = f'افزودن به سبد  +  ·  {amount} در سبد' if amount else 'افزودن به سبد  +'
                 st.button(label, key=f'add_{pid}', on_click=add, args=(pid,), use_container_width=True, disabled=amount>=20)
+                if amount:
+                    st.button('حذف از سبد ×', key=f'catalog_remove_{pid}', on_click=remove_item, args=(pid,), use_container_width=True)
 if not items:
     st.info('محصولی پیدا نشد. نام یا رنگ دیگری را امتحان کنید.')
 
-if show_summary:
-    st.subheader('خلاصه سبد آزمایشی')
-    rows = [{'محصول':lookup[pid]['name'],'تعداد':q,'جمع (USD)':float(lookup[pid]['price'])*q}
-            for pid,q in st.session_state.cart.items() if q]
-    if rows:
-        st.dataframe(rows, use_container_width=True, hide_index=True)
-        st.success('این فقط پیش‌نمایش سبد است؛ سفارشی ارسال نشده است')
-    else:
-        st.warning('سبد خالی است')
+st.button(f'مشاهده سبد خرید ({count}) 🛍️', key='catalog_cart_link', on_click=go_cart, type='primary', use_container_width=True)
 st.markdown('<footer class="v-footer"><strong>VESSELL</strong><span>Sending love home. One little flower at a time.</span><span>گل‌های کوچک، احساس‌های بزرگ ♡</span></footer>', unsafe_allow_html=True)
